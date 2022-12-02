@@ -20,7 +20,7 @@
 #define CHAR_SIZE 8
 #define CHAR_PER_WORD 4
 
-void populate_seg_zero(UM_T um, FILE *fp, uint32_t size);
+void populate_seg_zero(Memory_T mem, FILE *fp, uint32_t size);
 uint32_t construct_word(FILE *fp);
 
 int main(int argc, char *argv[]) 
@@ -37,15 +37,18 @@ int main(int argc, char *argv[])
     stat(argv[1], &file_info);
     uint32_t size = file_info.st_size / CHAR_PER_WORD;
 
-    UM_T um = um_new(size);
-    assert(um != NULL);
+    // UM_T um = um_new(size);
+    // assert(um != NULL);
 
-    populate_seg_zero(um, fp, size);
+    Memory_T mem = memory_new(size);
+    assert(mem != NULL);
+
+    populate_seg_zero(mem, fp, size);
 
     fclose(fp);
-    um_execute(um);
+    um_execute(mem);
 
-    um_free(&um);
+    memory_free(&mem);
 
     return EXIT_SUCCESS;
 }
@@ -57,15 +60,15 @@ int main(int argc, char *argv[])
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if fp does not exist
  */
-void populate_seg_zero(UM_T um, FILE *fp, uint32_t size)
+void populate_seg_zero(Memory_T mem, FILE *fp, uint32_t size)
 {
-    assert(um != NULL);
+    assert(mem != NULL);
     assert(fp != NULL);
 
     for (uint32_t index = 0; index < size; ++index) {
         uint32_t word = construct_word(fp);
 
-        populate(um, index, word);
+        populate(mem, index, word);
     }
 }
 

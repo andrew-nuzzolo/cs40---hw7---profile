@@ -15,9 +15,11 @@
  
 /* Struct definition of a Register_T which 
    contains an unboxed array of uint32_t's to store vals in registers */
-struct Registers_T {
-        UArray_T registers;
-}; 
+// struct Registers_T {
+//         UArray_T registers;
+// }; 
+
+static uint32_t registers[8];
 
 /* Name: registers_new
  * Input: N/A

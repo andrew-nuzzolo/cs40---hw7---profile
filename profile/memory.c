@@ -11,8 +11,8 @@
 #include "memory.h" 
 #include "uarray.h"
 #include "seq.h"
-
 #define HINT 10
+
 
 /* Struct definition of a Memory_T which 
    contains two sequences: 
