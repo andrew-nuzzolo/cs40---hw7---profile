@@ -25,7 +25,7 @@
 #define RB_LSB 3
 #define RC_LSB 0
 #define NUM_REGISTERS 8
-// #define VALUE_SIZE (WORD_SIZE - OP_WIDTH - R_WIDTH)
+#define VALUE_SIZE 25
 
 static uint32_t registers[NUM_REGISTERS];
 
@@ -332,7 +332,7 @@ uint32_t load_program(Memory_T mem, uint32_t rb, uint32_t rc)
 void instruction_call(Memory_T mem, Um_opcode op, uint32_t ra, 
                       uint32_t rb, uint32_t rc)
 {
-    assert(op >= 0 && op < 14);
+    assert(op >= 0 && op < 14); //DO WE NEED IT
     assert(mem != NULL);
 
     switch (op) {
@@ -413,19 +413,23 @@ void um_execute(Memory_T mem)
 
         /* Load value */
         if (opcode == 13) {
-                uint32_t value_size = WORD_SIZE - OP_WIDTH - R_WIDTH;
-                ra = Bitpack_getu(word, R_WIDTH, value_size);
-        
-                uint32_t value = Bitpack_getu(word, value_size, 0);
-                registers[ra] = value; 
+                //uint32_t value_size = WORD_SIZE - OP_WIDTH - R_WIDTH;
+               // ra = Bitpack_getu(word, R_WIDTH, VALUE_SIZE);
+                ra = (word << (WORD_SIZE - (R_WIDTH + VALUE_SIZE))) >> (WORD_SIZE - R_WIDTH); 
+                // uint32_t value = Bitpack_getu(word, VALUE_SIZE, 0);
+                //uint32_t value = (word << (WORD_SIZE - VALUE_SIZE)) >> (WORD_SIZE - VALUE_SIZE); 
+                registers[ra] = (word << (WORD_SIZE - VALUE_SIZE)) >> (WORD_SIZE - VALUE_SIZE); 
                 continue;
         } 
 
-        ra = Bitpack_getu(word, R_WIDTH, RA_LSB);
+        //ra = Bitpack_getu(word, R_WIDTH, RA_LSB);
+        ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
 
-        rb = Bitpack_getu(word, R_WIDTH, RB_LSB);
-        
-        rc = Bitpack_getu(word, R_WIDTH, RC_LSB);
+        // rb = Bitpack_getu(word, R_WIDTH, RB_LSB);
+        rb = (word << (WORD_SIZE - (R_WIDTH + RB_LSB))) >> (WORD_SIZE - R_WIDTH); 
+
+        // rc = Bitpack_getu(word, R_WIDTH, RC_LSB);
+        rc = (word << (WORD_SIZE - (R_WIDTH + RC_LSB))) >> (WORD_SIZE - R_WIDTH); 
 
         /* Load Program */
         if (opcode == 12) {
