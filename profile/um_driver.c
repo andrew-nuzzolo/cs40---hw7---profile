@@ -67,8 +67,7 @@ void populate_seg_zero(Memory_T mem, FILE *fp, uint32_t size)
 
     for (uint32_t index = 0; index < size; ++index) {
         uint32_t word = construct_word(fp);
-
-        populate(mem, index, word);
+        memory_put(mem, 0, index, word);
     }
 }
 

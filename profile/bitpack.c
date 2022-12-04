@@ -84,34 +84,34 @@ int64_t Bitpack_gets(uint64_t word, unsigned width, unsigned lsb)
 
 uint64_t Bitpack_getu(uint64_t word, unsigned width, unsigned lsb)
 {
-        unsigned hi = lsb + width; /* one beyond the most significant bit */
-        assert(hi <= 64);
-        /* different type of right shift */
-        return shr(shl(word, 64 - hi),
-                   64 - width); 
+        // unsigned hi = lsb + width; /* one beyond the most significant bit */
+        // assert(hi <= 64);
+        // /* different type of right shift */
+        // return shr(shl(word, 64 - hi),
+        //            64 - width); 
 
-        // unsigned hi = lsb + width;
-        // uint32_t shr_word;
-        // // uint32_t result;
+        unsigned hi = lsb + width;
+        uint32_t shr_word;
+        // uint32_t result;
 
-        // unsigned temp1 = 64 - hi;
-        // unsigned temp2 = 64 - width;
+        unsigned temp1 = 64 - hi;
+        unsigned temp2 = 64 - width;
 
-        // /* shl */
-        // assert((temp1) <= 64);
+        /* shl */
+        assert((temp1) <= 64);
 
-        // if ((temp1) == 64)
-        //         shr_word = 0;
-        // else
-        //         shr_word = word << temp1;
+        if ((temp1) == 64)
+                shr_word = 0;
+        else
+                shr_word = word << temp1;
 
-        // /* shr */
-        // assert(temp2 <= 64);
+        /* shr */
+        assert(temp2 <= 64);
 
-        // if (temp2 == 64)
-        //         return 0;
-        // else
-        //         return shr_word >> temp2;
+        if (temp2 == 64)
+                return 0;
+        else
+                return shr_word >> temp2;
 }
 
 
