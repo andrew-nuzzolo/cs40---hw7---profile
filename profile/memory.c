@@ -39,64 +39,6 @@ struct Memory_T {
 
 
 
-// /* seq put */
-// void mem_arr_put(Memory_T m, seg_arr seg, int index) 
-// {
-//         m->segments[index] = seg;
-// }
-
-
-
-// /* add hi */
-// void mem_arr_addhi(Memory_T m, seg_arr seg)
-// {
-//         assert(seg != NULL); 
-//         if (m->total_segments >= m->seg_capacity) {
-//                 m->segments = realloc(m->segments, m->seg_capacity * 2 * sizeof(struct seg_arr) + sizeof(uint32_t));
-                
-//                 uint32_t old_cap = m->seg_capacity;
-//                 m->seg_capacity = (m->seg_capacity * 2) + 1;
-//                 uint32_t new_cap = m->seg_capacity;
-
-//                 for (uint32_t i = old_cap; i < new_cap; ++i) {
-//                         m->segments[i] = 0;
-//                 }
-//         }
-//         m->segments[m->total_segments - 1] = seg;
-//         m->mem_length++; 
-// }
-
-
-
-// /* free */
-// void mem_arr_free(Memory_T m) 
-// {
-//         // fprintf(stderr, "freeing memory\n");
-//         assert(m != NULL);
-//         for (uint32_t i = 0; i < m->seg_capacity; i++) {
-//                 seg_arr temp = m->segments[i];
-//                 if (temp != NULL) {
-//                         if (temp->segment != NULL) {
-//                                 free(temp->segment); 
-//                                 m->mem_length--; 
-//                         }
-//                         free(temp); 
-//                 }
-                
-//                 if (m->mem_length == 0) {
-//                         break;
-//                 }
-//         }
-// }
-
-// /* length */
-// int mem_arr_length(Memory_T m) {
-//         // fprintf(stderr, "memory_array_length: %d\n", m->mem_length);
-//         return m->mem_length;
-        
-// }
-
-
 /* Name: memory_new
  * Input: a uint32_t representing the length of segment zero
  * Output: A newly allocated Memory_T struct
@@ -380,12 +322,12 @@ void instruction_call(Memory_T mem, Um_opcode op, uint32_t ra,
                 }
                 break;
         case SLOAD: 
-                registers[ra] = memory_get(mem, registers[rb], registers[rc]);  
-               // registers[ra]= mem->segments[registers[rb]]->segment[registers[rc]]; 
+                // registers[ra] = memory_get(mem, registers[rb], registers[rc]);  
+                registers[ra]= mem->segments[registers[rb]]->segment[registers[rc]]; 
                 break;
         case SSTORE: 
-                memory_put(mem, registers[ra], registers[rb], registers[rc]);;  
-               // mem->segments[registers[ra]]->segment[registers[rb]] = registers[rc];
+                // memory_put(mem, registers[ra], registers[rb], registers[rc]);;  
+                mem->segments[registers[ra]]->segment[registers[rb]] = registers[rc];
                 break;
         case ADD: 
                 registers[ra] = registers[rb] + registers[rc]; 
@@ -435,8 +377,6 @@ void um_execute(Memory_T mem)
         assert(mem != NULL);
 
         seg_arr seg_zero = mem->segments[0];
-
-
         assert(seg_zero != NULL);
 
         int seg_zero_len = seg_zero->length;
@@ -450,26 +390,201 @@ void um_execute(Memory_T mem)
                 prog_counter++;
 
                 /* Load value */
-                if (opcode == 13) {
-                        ra = (word << (WORD_SIZE - (R_WIDTH + VALUE_SIZE))) >> (WORD_SIZE - R_WIDTH); 
-                        registers[ra] = (word << (WORD_SIZE - VALUE_SIZE)) >> (WORD_SIZE - VALUE_SIZE); 
-                        continue;
-                } 
+                // if (opcode == 13) {
+                //         ra = (word << (WORD_SIZE - (R_WIDTH + VALUE_SIZE))) >> (WORD_SIZE - R_WIDTH); 
+                //         registers[ra] = (word << (WORD_SIZE - VALUE_SIZE)) >> (WORD_SIZE - VALUE_SIZE); 
+                //         continue;
+                // } 
 
-                ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
-                rb = (word << (WORD_SIZE - (R_WIDTH + RB_LSB))) >> (WORD_SIZE - R_WIDTH); 
-                rc = (word << (WORD_SIZE - (R_WIDTH + RC_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                // ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                // rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                // rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
 
                 /* Load Program */
-                if (opcode == 12) {
-                        /* Updates programs counter*/
-                        prog_counter = registers[rc];
-                        load_program(mem, registers[rb]);
-                        seg_zero = mem->segments[0];
-                        assert(seg_zero != NULL);
-                        seg_zero_len = seg_zero->length;
-                } else {
-                        instruction_call(mem, opcode, ra, rb, rc);
+                // if (opcode == 12) {
+                //         /* Updates programs counter*/
+                //         prog_counter = registers[rc];
+                //         load_program(mem, registers[rb]);
+                //         seg_zero = mem->segments[0];
+                //         assert(seg_zero != NULL);
+                //         seg_zero_len = seg_zero->length;
+                // } else {
+                //         instruction_call(mem, opcode, ra, rb, rc);
+                // }
+                
+              
+                
+                switch (opcode) {
+                        case LV:
+                                ra = (word << (WORD_SIZE - (R_WIDTH + VALUE_SIZE))) >> (WORD_SIZE - R_WIDTH); 
+                                registers[ra] = (word << (WORD_SIZE - VALUE_SIZE)) >> (WORD_SIZE - VALUE_SIZE); 
+                                break;
+                        case LOADP: 
+                               // ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                                rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                        
+                                prog_counter = registers[rc];
+                                load_program(mem, registers[rb]);
+                                seg_zero = mem->segments[0];
+                                assert(seg_zero != NULL);
+                                seg_zero_len = seg_zero->length;
+                                break;
+                        case CMOV: 
+                                ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                                rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                if (registers[rc] != 0) {
+                                        registers[ra] = registers[rb];
+                                }
+                                break;
+                        case SLOAD: 
+                                ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                                rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                registers[ra]= mem->segments[registers[rb]]->segment[registers[rc]]; 
+                                break;
+                        case SSTORE: 
+                                ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                                rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                mem->segments[registers[ra]]->segment[registers[rb]] = registers[rc];
+                                break;
+                        case ADD: 
+                                ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                                rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                registers[ra] = registers[rb] + registers[rc]; 
+                                break;
+                        case MUL: 
+                                ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                                rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                registers[ra] = registers[rb] * registers[rc];                 
+                                break;
+                        case DIV: 
+                                ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                                rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                registers[ra] = registers[rb] / registers[rc];                  
+                                break;
+                        case NAND: 
+                                ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                                rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                registers[ra] = ~(registers[rb] & registers[rc]);                   
+                                break;
+                        case HALT: 
+                                memory_free(mem);
+                                exit(EXIT_SUCCESS);
+                                break;
+                        case MAP: 
+                                rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                registers[rb] = memory_map(mem, registers[rc]); 
+                                break;
+                        case UNMAP: 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                memory_unmap(mem, registers[rc]);
+                                break;
+                        case OUT: 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                putchar(registers[rc]);
+                                break;
+                        case IN: 
+                                rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
+                                input(rc);
+                                break;
+                        default: assert(true);
                 }
+
+
+                
         }
 }
+
+/*
+  switch (opcode) {
+                        case LV:
+                                ra = (word << 4) >> (29); 
+                                registers[ra] = (word << 7) >> 7; 
+                                break;
+                        case LOADP: 
+                               // ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
+                                rb = (word << 26) >> (29); 
+                                rc = (word << 29) >> 29; 
+                        
+                                prog_counter = registers[rc];
+                                load_program(mem, registers[rb]);
+                                seg_zero = mem->segments[0];
+                                assert(seg_zero != NULL);
+                                seg_zero_len = seg_zero->length;
+                                break;
+                        case CMOV: 
+                                ra = (word << (23)) >> (29); 
+                                rb = (word << 26) >> (29); 
+                                rc = (word << 29) >> (29); 
+                                if (registers[rc] != 0) {
+                                        registers[ra] = registers[rb];
+                                }
+                                break;
+                        case SLOAD: 
+                                ra = (word << (23)) >> (29); 
+                                rb = (word << 26) >> (29); 
+                                rc = (word << 29) >> (29); 
+                                registers[ra]= mem->segments[registers[rb]]->segment[registers[rc]]; 
+                                break;
+                        case SSTORE: 
+                                ra = (word << (23)) >> (29); 
+                                rb = (word << 26) >> (29); 
+                                rc = (word << 29) >> (29); 
+                                mem->segments[registers[ra]]->segment[registers[rb]] = registers[rc];
+                                break;
+                        case ADD: 
+                                ra = (word << (23)) >> (29); 
+                                rb = (word << 26) >> (29); 
+                                rc = (word << 29) >> (29); 
+                                registers[ra] = registers[rb] + registers[rc]; 
+                                break;
+                        case MUL: 
+                                ra = (word << (23)) >> (29); 
+                                rb = (word << 26) >> (29); 
+                                rc = (word << 29) >> (29); 
+                                registers[ra] = registers[rb] * registers[rc];                 
+                                break;
+                        case DIV: 
+                                ra = (word << (23)) >> (29); 
+                                rb = (word << 26) >> (29); 
+                                rc = (word << 29) >> (29); 
+                                registers[ra] = registers[rb] / registers[rc];                  
+                                break;
+                        case NAND: 
+                                ra = (word << (23)) >> (29); 
+                                rb = (word << 26) >> (29); 
+                                rc = (word << 29) >> (29); 
+                                registers[ra] = ~(registers[rb] & registers[rc]);                   
+                                break;
+                        case HALT: 
+                                memory_free(mem);
+                                exit(EXIT_SUCCESS);
+                                break;
+                        case MAP: 
+                                rb = (word << 26) >> (29); 
+                                rc = (word << 29) >> (29); 
+                                registers[rb] = memory_map(mem, registers[rc]); 
+                                break;
+                        case UNMAP: 
+                                rc = (word << 29) >> (29); 
+                                memory_unmap(mem, registers[rc]);
+                                break;
+                        case OUT: 
+                                rc = (word << 29) >> (29); 
+                                putchar(registers[rc]);
+                                break;
+                        case IN: 
+                                rc = (word << 29) >> (29); 
+                                input(rc);
+                                break;
+                        default: assert(true);
+                }*/
+
