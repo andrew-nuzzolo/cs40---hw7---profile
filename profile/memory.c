@@ -42,12 +42,12 @@ struct Memory_T {
 
 
 /* new */
-seg_arr *mem_arr_new(int length) {
-        // fprintf(stderr, "making new segment\n");
-    seg_arr *segments = malloc(length * sizeof(struct seg_arr)); 
-    assert (segments != NULL);
-    return segments;
-}
+// seg_arr *mem_arr_new(int length) {
+//         // fprintf(stderr, "making new segment\n");
+//     seg_arr *segments = malloc(length * sizeof(struct seg_arr)); 
+//     assert (segments != NULL);
+//     return segments;
+// }
 
 
 
@@ -134,10 +134,12 @@ Memory_T memory_new(uint32_t length)
         /* Creating the segments */
         // m_new->segments = Seq_new(HINT);
         // assert(m_new->segments != NULL);
-        m_new->segments = mem_arr_new(BIG_HINT);
+        m_new->segments = malloc(BIG_HINT * sizeof(struct seg_arr)); 
+        assert(m_new->segments != NULL);
+        m_new->seg_capacity = BIG_HINT; 
 
         /* Creating the sequence to keep track of free segments */
-        // m_new->free = Seq_new(HINT);
+        // m_new->free = Seq_new(BIG_HINT);
         // assert(m_new->free != NULL);
 
         m_new->free = malloc(sizeof(uint32_t) * BIG_HINT); 
@@ -163,28 +165,12 @@ void memory_free(Memory_T *m)
 {
         assert(*m != NULL);
 
-        /* Freeing the UArray_T segments */
-       // int seg_len = Seq_length((*m)->segments);
-        // for (int seg_num = 0; seg_num < seg_len; ++seg_num) {
-        //         // UArray_T aux = (UArray_T)Seq_remlo((*m)->segments);
-        //         seg_arr aux = (seg_arr)Seq_remlo((*m)->segments);
-
-        //         /* If the segment is unmapped, there is nothing to free */
-        //         if (aux == NULL) {
-        //                 continue;
-        //         } else {
-        //                 // UArray_free(&aux);
-        //                 // seg_arr_free(aux); // not sure if right
-        //                 free(aux->segment); 
-        //                 free(aux);
-        //         }
-        // }
-
         mem_arr_free(*m);
 
         /* Freeing everything else */
         //Seq_free(&(*m)->segments);
         // Seq_free(&(*m)->free); 
+        free((*m)->segments); 
         free((*m)->free);
         free(*m);
 }
@@ -331,7 +317,7 @@ void memory_unmap(Memory_T m, uint32_t seg_num)
        // Seq_put(m->segments, seg_num, NULL);
         mem_arr_put(m, NULL, seg_num);
 
-        // m->mem_length--;
+        m->mem_length--;
 }
 
 void load_program(Memory_T m, uint32_t seg_num)
