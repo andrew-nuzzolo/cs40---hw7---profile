@@ -15,25 +15,107 @@
 #define HINT 10
 #define BIG_HINT 1000
 
-/* Struct definition of a Memory_T which 
-   contains two sequences: 
-   - one holding pointers to UArray_T's representing segments
-   - one holding pointers to uint32_t's representing free segments */
-struct Memory_T {
-        Seq_T segments;
-      // uint32_t *segments;
-       //Seq_T free;
-        uint32_t *free;
-        uint32_t num_unmapped; 
-        uint32_t unampped_capacity; 
-        uint32_t total_segments; 
-        
-};
+
 typedef struct seg_arr *seg_arr; 
 struct seg_arr {
         uint32_t *segment;
         int length;
 };
+
+/* Struct definition of a Memory_T which 
+   contains two sequences: 
+   - one holding pointers to UArray_T's representing segments
+   - one holding pointers to uint32_t's representing free segments */
+struct Memory_T {
+        //Seq_T segments;
+      // uint32_t *segments;
+       //Seq_T free;
+        seg_arr *segments; 
+        uint32_t mem_length;
+        uint32_t seg_capacity; 
+        uint32_t *free;
+        uint32_t unmapped_length; 
+        uint32_t unampped_capacity; 
+        uint32_t total_segments; 
+};
+
+
+
+/* new */
+seg_arr *mem_arr_new(int length) {
+        // fprintf(stderr, "making new segment\n");
+    seg_arr *segments = malloc(length * sizeof(struct seg_arr)); 
+    assert (segments != NULL);
+    return segments;
+}
+
+
+
+/* seq get */
+seg_arr mem_arr_get(Memory_T m, uint32_t index) {
+        // fprintf(stderr, "get index: %u\n", index);
+        assert(index < m->seg_capacity);
+        return m->segments[index]; 
+}
+
+
+
+/* seq put */
+void mem_arr_put(Memory_T m, seg_arr seg, int index) 
+{
+        // if (index >= m->seg_capacity) {
+        //         m->segments = realloc(m->segments, m->seg_capacity * 2 * sizeof(uint32_t) + sizeof(uint32_t));
+
+        // }
+        // fprintf(stderr, "put\n");
+        m->segments[index] = seg;
+}
+
+
+
+/* add hi */
+void mem_arr_addhi(Memory_T m, seg_arr seg)
+{
+        assert(seg != NULL); 
+        if (m->total_segments >= m->seg_capacity) {
+                m->segments = realloc(m->segments, m->seg_capacity * 2 * sizeof(struct seg_arr) + sizeof(uint32_t));
+                m->seg_capacity = (m->seg_capacity * 2) + 1; 
+        }
+        m->segments[m->total_segments - 1] = seg;
+        m->mem_length++; 
+        // fprintf(stderr, "addhi seg\n");
+}
+
+
+
+/* free */
+void mem_arr_free(Memory_T m) 
+{
+        // fprintf(stderr, "freeing memory\n");
+        assert(m != NULL);
+        for (uint32_t i = 0; i < m->seg_capacity; i++) {
+                seg_arr temp = m->segments[i];
+                if (temp != NULL) {
+                        if (temp->segment != NULL) {
+                                free(temp->segment); 
+                                m->mem_length--; 
+                        }
+                        free(temp); 
+                }
+                
+                if (m->mem_length == 0) {
+                        break;
+                }
+        }
+}
+
+/* length */
+int mem_arr_length(Memory_T m) {
+        // fprintf(stderr, "memory_array_length: %d\n", m->mem_length);
+        return m->mem_length;
+        
+}
+
 
 /* Name: memory_new
  * Input: a uint32_t representing the length of segment zero
@@ -50,8 +132,9 @@ Memory_T memory_new(uint32_t length)
         assert(m_new != NULL);
 
         /* Creating the segments */
-        m_new->segments = Seq_new(HINT);
-        assert(m_new->segments != NULL);
+        // m_new->segments = Seq_new(HINT);
+        // assert(m_new->segments != NULL);
+        m_new->segments = mem_arr_new(BIG_HINT);
 
         /* Creating the sequence to keep track of free segments */
         // m_new->free = Seq_new(HINT);
@@ -60,22 +143,10 @@ Memory_T memory_new(uint32_t length)
         m_new->free = malloc(sizeof(uint32_t) * BIG_HINT); 
         assert(m_new->free != NULL); 
 
-        m_new->num_unmapped = 0; 
+        m_new->unmapped_length = 0; 
         m_new->unampped_capacity = BIG_HINT; 
         m_new->total_segments = 0; 
         
-
-        /* Sets all segments to NULL and populates free segment sequence */
-        // for (int seg_num = 0; seg_num < HINT; ++seg_num) {
-        //         Seq_addlo(m_new->segments, NULL);
-
-        //         uint32_t *temp = malloc(sizeof(uint32_t));
-        //         assert(temp != NULL);
-
-        //        *temp = seg_num;
-        //        Seq_addhi(m_new->free, temp);
-        // }
-
         /* Creating segment zero with proper length*/
         memory_map(m_new, length);
 
@@ -93,33 +164,26 @@ void memory_free(Memory_T *m)
         assert(*m != NULL);
 
         /* Freeing the UArray_T segments */
-        int seg_len = Seq_length((*m)->segments);
-        for (int seg_num = 0; seg_num < seg_len; ++seg_num) {
-                // UArray_T aux = (UArray_T)Seq_remlo((*m)->segments);
-                seg_arr aux = (seg_arr)Seq_remlo((*m)->segments);
+       // int seg_len = Seq_length((*m)->segments);
+        // for (int seg_num = 0; seg_num < seg_len; ++seg_num) {
+        //         // UArray_T aux = (UArray_T)Seq_remlo((*m)->segments);
+        //         seg_arr aux = (seg_arr)Seq_remlo((*m)->segments);
 
-                /* If the segment is unmapped, there is nothing to free */
-                if (aux == NULL) {
-                        continue;
-                } else {
-                        // UArray_free(&aux);
-                        // seg_arr_free(aux); // not sure if right
-                        free(aux->segment); 
-                        free(aux);
-                }
-        }
-
-        // /* Freeing the uint32_t pointers */
-        // int free_len = Seq_length((*m)->free);
-        // for (int seg_num = 0; seg_num < free_len; ++seg_num) {
-        //     uint32_t *integer = (uint32_t *)Seq_remlo((*m)->free);
-        //     free(integer);
+        //         /* If the segment is unmapped, there is nothing to free */
+        //         if (aux == NULL) {
+        //                 continue;
+        //         } else {
+        //                 // UArray_free(&aux);
+        //                 // seg_arr_free(aux); // not sure if right
+        //                 free(aux->segment); 
+        //                 free(aux);
+        //         }
         // }
 
-
+        mem_arr_free(*m);
 
         /* Freeing everything else */
-        Seq_free(&(*m)->segments);
+        //Seq_free(&(*m)->segments);
         // Seq_free(&(*m)->free); 
         free((*m)->free);
         free(*m);
@@ -135,11 +199,14 @@ void memory_free(Memory_T *m)
  */
 void memory_put(Memory_T m, uint32_t seg, uint32_t off, uint32_t val)
 {
+       // fprintf(stderr, "adding word\n"); 
         assert(m != NULL);
-        assert(seg < (uint32_t)Seq_length(m->segments));
+        // assert(seg < (uint32_t)Seq_length(m->segments));
 
         // UArray_T queried_segment = (UArray_T)Seq_get(m->segments, seg);
-        seg_arr queried_segment = (seg_arr)Seq_get(m->segments, seg);
+        // seg_arr queried_segment = (seg_arr)Seq_get(m->segments, seg);
+        // assert(queried_segment != NULL);
+        seg_arr queried_segment = mem_arr_get(m, seg);
         assert(queried_segment != NULL);
 
         // assert(off < (uint32_t)UArray_length(queried_segment));
@@ -163,11 +230,11 @@ void memory_put(Memory_T m, uint32_t seg, uint32_t off, uint32_t val)
 uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off)
 {
         assert(m != NULL);
-        assert(seg < (uint32_t)Seq_length(m->segments));
+        // assert(seg < (uint32_t)Seq_length(m->segments));
         
         // UArray_T queried_segment = (UArray_T)Seq_get(m->segments, seg);
-        seg_arr queried_segment = (seg_arr)Seq_get(m->segments, seg);
-
+        // seg_arr queried_segment = (seg_arr)Seq_get(m->segments, seg);
+        seg_arr queried_segment = mem_arr_get(m, seg);
 
         assert(queried_segment != NULL);
 
@@ -209,40 +276,21 @@ uint32_t memory_map(Memory_T m, uint32_t length)
                 seg->segment[arr_index] = 0;
         }
 
-        /* Mapping a segment */
-        // uint32_t index = Seq_length(m->segments);
-
-        // if (Seq_length(m->free) == 0) {
-        //     /* If there are no free segments, 
-        //        put UArray_T at end of sequence */
-        //     Seq_addhi(m->segments, seg);
-        // } else {
-        //     /* If there is a free segment, 
-        //        get the index and put the UArray_T at that index */
-        //     uint32_t *free_seg_num = (uint32_t *)Seq_remlo(m->free);
-        //     index = *free_seg_num;
-        //     free(free_seg_num);
-        //     Seq_put(m->segments, index, seg);
-        // }
-
-
-        if (m->num_unmapped == 0) {
+        if (m->unmapped_length == 0) {
                 m->total_segments++; 
-               // fprintf(stderr, "mapping new seg (if): %d\n", m->total_segments - 1);
-                Seq_addhi(m->segments, seg); 
-               // assert(Seq_get(m->segments, 0) != NULL);
+                // Seq_addhi(m->segments, seg); 
+                mem_arr_addhi(m, seg);
                 return m->total_segments - 1;  
         } else {
-                m->num_unmapped--;
-              //  fprintf(stderr, "mapping new seg (else): %d\n",  m->free[m->num_unmapped]);
+                m->unmapped_length--;
+               // Seq_put(m->segments, m->free[m->unmapped_length], seg); 
+                mem_arr_put(m, seg, m->free[m->unmapped_length]);
+                // assert(Seq_get(m->segments, m->free[m->unmapped_length]) != NULL);
+                assert(mem_arr_get(m, m->free[m->unmapped_length]) != NULL);
 
-                Seq_put(m->segments, m->free[m->num_unmapped], seg); 
-                assert(Seq_get(m->segments, m->free[m->num_unmapped]) != NULL);
-
-                return m->free[m->num_unmapped]; 
+                return m->free[m->unmapped_length]; 
         }
 
-      //  return index;
 }
 
 /* Name: memory_unmap
@@ -262,7 +310,8 @@ void memory_unmap(Memory_T m, uint32_t seg_num)
         assert(seg_num != 0);
 
         // UArray_T unmap = Seq_get(m->segments, seg_num);
-        seg_arr unmap = Seq_get(m->segments, seg_num);
+        // seg_arr unmap = Seq_get(m->segments, seg_num);
+        seg_arr unmap = mem_arr_get(m, seg_num);
 
         assert(unmap != NULL);
 
@@ -271,21 +320,18 @@ void memory_unmap(Memory_T m, uint32_t seg_num)
         free(unmap->segment); 
         free(unmap);
 
-        // uint32_t *free_seg = malloc(sizeof(uint32_t));
-        // assert(free_seg != NULL);
-
-        // *free_seg = seg_num;
-        // Seq_addhi(m->free, free_seg);
-
-        if (m->num_unmapped == m->unampped_capacity) {
-                m->free = realloc(m->free, m->unampped_capacity * 2 * sizeof(uint32_t));
-                m->unampped_capacity *= 2;
+        if (m->unmapped_length == m->unampped_capacity) {
+                m->free = realloc(m->free, m->unampped_capacity * 2 * sizeof(uint32_t) + sizeof(uint32_t));
+                m->unampped_capacity = m->unampped_capacity * 2 + 1;
         }
 
-        m->free[m->num_unmapped] = seg_num; 
-        m->num_unmapped++; 
+        m->free[m->unmapped_length] = seg_num; 
+        m->unmapped_length++; 
 
-        Seq_put(m->segments, seg_num, NULL);
+       // Seq_put(m->segments, seg_num, NULL);
+        mem_arr_put(m, NULL, seg_num);
+
+        // m->mem_length--;
 }
 
 void load_program(Memory_T m, uint32_t seg_num)
@@ -296,7 +342,8 @@ void load_program(Memory_T m, uint32_t seg_num)
                 return; 
         }
 
-        seg_arr to_copy = (seg_arr)Seq_get(m->segments, seg_num);
+        // seg_arr to_copy = (seg_arr)Seq_get(m->segments, seg_num);
+        seg_arr to_copy = mem_arr_get(m, seg_num);
         assert(to_copy != NULL); 
 
         seg_arr copy = malloc(sizeof(*copy)); 
@@ -310,11 +357,15 @@ void load_program(Memory_T m, uint32_t seg_num)
                 copy->segment[i] = to_copy->segment[i]; 
         }
 
-        seg_arr seg_0 = (seg_arr)Seq_get(m->segments, 0);
+        // seg_arr seg_0 = (seg_arr)Seq_get(m->segments, 0);
+        seg_arr seg_0 = mem_arr_get(m, 0);
+
+        
         free(seg_0->segment); 
         free(seg_0);
 
-        Seq_put(m->segments, 0, copy);
+       // Seq_put(m->segments, 0, copy);
+        mem_arr_put(m, copy, 0);
      
 }
 
@@ -440,9 +491,12 @@ void instruction_call(Memory_T mem, Um_opcode op, uint32_t ra,
                 }
                 break;
         case SLOAD: 
+                // fprintf(stderr, "sload\n");
                 registers[ra] = memory_get(mem, registers[rb], registers[rc]);  
                 break;
         case SSTORE: 
+                        // fprintf(stderr, "sstore\n");
+
                 memory_put(mem, registers[ra], registers[rb], registers[rc]);;  
                 break;
         case ADD: 
@@ -462,9 +516,13 @@ void instruction_call(Memory_T mem, Um_opcode op, uint32_t ra,
                 exit(EXIT_SUCCESS);
                 break;
         case MAP: 
+                        // fprintf(stderr, "map func\n");
+
                 registers[rb] = memory_map(mem, registers[rc]); 
                 break;
         case UNMAP: 
+                        // fprintf(stderr, "unmap func\n");
+
                 memory_unmap(mem, registers[rc]);
                 break;
         case OUT: 
@@ -492,15 +550,18 @@ void instruction_call(Memory_T mem, Um_opcode op, uint32_t ra,
 void um_execute(Memory_T mem)
 {
         assert(mem != NULL);
+        // fprintf(stderr, "executing instrs\n");
 
         // UArray_T seg_zero = (UArray_T)Seq_get(mem->segments, 0);
-        seg_arr seg_zero = (seg_arr)Seq_get(mem->segments, 0);;
+        // seg_arr seg_zero = (seg_arr)Seq_get(mem->segments, 0);
+        seg_arr seg_zero = mem_arr_get(mem, 0);
+
 
         assert(seg_zero != NULL);
 
         // int seg_zero_len = UArray_length(seg_zero);
-        int seg_zero_len = seg_zero->length;
-
+         int seg_zero_len = seg_zero->length;
+        //int seg_zero_len = mem_arr_length(mem);
         int prog_counter = 0;
         uint32_t opcode, ra, rb, rc, word;
 
@@ -513,6 +574,8 @@ void um_execute(Memory_T mem)
 
                 /* Load value */
                 if (opcode == 13) {
+                                       // fprintf(stderr, "loadval\n");
+
                         ra = (word << (WORD_SIZE - (R_WIDTH + VALUE_SIZE))) >> (WORD_SIZE - R_WIDTH); 
                         registers[ra] = (word << (WORD_SIZE - VALUE_SIZE)) >> (WORD_SIZE - VALUE_SIZE); 
                         continue;
@@ -524,6 +587,8 @@ void um_execute(Memory_T mem)
 
                 /* Load Program */
                 if (opcode == 12) {
+                                        // fprintf(stderr, "load_program\n");
+
                         /* Updates programs counter*/
                         prog_counter = registers[rc];
                         // fprintf(stderr, "called load program\n");
@@ -531,7 +596,9 @@ void um_execute(Memory_T mem)
                         load_program(mem, registers[rb]);
 
 
-                        seg_zero = (seg_arr)Seq_get(mem->segments, 0);
+                        // seg_zero = (seg_arr)Seq_get(mem->segments, 0);
+                        seg_zero = mem_arr_get(mem, 0);
+                        
                         assert(seg_zero != NULL);
 
                         seg_zero_len = seg_zero->length;
@@ -540,26 +607,3 @@ void um_execute(Memory_T mem)
                 }
         }
 }
-
-/*
-
-  seg_arr to_copy = (seg_arr)Seq_get(m->segments, seg_num);
-        assert(to_copy != NULL); 
-
-        seg_arr copy = malloc(sizeof(*copy)); 
-        assert(copy != NULL); 
-        copy->segment = malloc(sizeof(uint32_t) * to_copy->length);
-        assert(copy->segment != NULL);
-        copy->length = to_copy->length;
-      
-
-        for (int i = 0; i < to_copy->length; i++) {
-                copy->segment[i] = to_copy->segment[i]; 
-        }
-
-        seg_arr seg_0 = (seg_arr)Seq_get(m->segments, 0);
-        // seg_arr_free(seg_0); 
-        free(seg_0->segment); 
-        free(seg_0);
-
-        Seq_put(m->segments, 0, copy);*/
