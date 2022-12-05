@@ -38,9 +38,6 @@ int main(int argc, char *argv[])
     stat(argv[1], &file_info);
     uint32_t size = file_info.st_size / CHAR_PER_WORD;
 
-    // UM_T um = um_new(size);
-    // assert(um != NULL);
-
     Memory_T mem = memory_new(size);
     assert(mem != NULL);
 
@@ -75,5 +72,6 @@ void populate_seg_zero(Memory_T mem, FILE *fp, uint32_t size)
         d = getc(fp); 
         word = (a << 24) | (b << 16) | (c << 8) | d;
         memory_put(mem, 0, index, word);
+        // mem->segments[0]->segment[index] = word; 
     }
 }

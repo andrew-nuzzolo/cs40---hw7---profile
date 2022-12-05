@@ -10,8 +10,6 @@
 #include <stdlib.h>
 
 #include "memory.h" 
-// #include "uarray.h"
-// #include "seq.h"
 #include <stdbool.h>
 #define HINT 10
 #define BIG_HINT 1000
@@ -38,7 +36,6 @@ struct Memory_T {
 };
 
 
-
 /* Name: memory_new
  * Input: a uint32_t representing the length of segment zero
  * Output: A newly allocated Memory_T struct
@@ -61,8 +58,8 @@ Memory_T memory_new(uint32_t length)
         assert(m_new->free != NULL); 
         
         m_new->unampped_capacity = BIG_HINT; 
-        m_new->total_segments = 0; 
-        m_new->mem_length = 0; 
+                                                                m_new->total_segments = 0; 
+                                                                m_new->mem_length = 0; 
         m_new->unmapped_length = 0; 
         m_new->seg_capacity = BIG_HINT; 
 
@@ -88,12 +85,12 @@ void memory_free(Memory_T m)
                 if (temp != NULL) {
                         if (temp->segment != NULL) {
                                 free(temp->segment); 
-                                (m)->mem_length--; 
+                                m->mem_length--; 
                         }
                         free(temp); 
                 }
                 
-                if ((m)->mem_length == 0) {
+                if (m->mem_length == 0) {
                         break;
                 }
         }
@@ -116,35 +113,35 @@ void memory_put(Memory_T m, uint32_t seg, uint32_t off, uint32_t val)
 {
         assert(m != NULL);
 
-        seg_arr queried_segment = m->segments[seg]; 
-        assert(queried_segment != NULL);
-
-        assert(off < (uint32_t)queried_segment->length);
-
-        queried_segment->segment[off] = val;
-}
-
-/* Name: memory_get
- * Input: A Memory_T struct, a segment number, and an offset
- * Output: A uint32_t which represents the value at that segment and offset
- * Does: Gets the value at the specified segment number and offset and returns
- * Error: Asserts if struct is NULL
- *        Asserts if segment is not mapped
- *        Asserts if offset is not mapped
- */
-uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off)
-{
-        assert(m != NULL);
-        
         //seg_arr queried_segment = m->segments[seg]; 
+        // assert(queried_segment != NULL);
 
-        //assert(queried_segment != NULL);
+        // assert(off < (uint32_t)queried_segment->length);
 
-       // assert(off < (uint32_t)m->segments[seg]->length);
-
-        return m->segments[seg]->segment[off];
-
+        m->segments[seg]->segment[off] = val;
 }
+
+// /* Name: memory_get
+//  * Input: A Memory_T struct, a segment number, and an offset
+//  * Output: A uint32_t which represents the value at that segment and offset
+//  * Does: Gets the value at the specified segment number and offset and returns
+//  * Error: Asserts if struct is NULL
+//  *        Asserts if segment is not mapped
+//  *        Asserts if offset is not mapped
+//  */
+// uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off)
+// {
+//         assert(m != NULL);
+        
+//         //seg_arr queried_segment = m->segments[seg]; 
+
+//         //assert(queried_segment != NULL);
+
+//        // assert(off < (uint32_t)m->segments[seg]->length);
+
+//         return m->segments[seg]->segment[off];
+
+// }
 
 /* Name: memory_map
  * Input: A Memory_T struct, a segment number, and segment length
@@ -158,7 +155,6 @@ uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off)
 uint32_t memory_map(Memory_T m, uint32_t length)
 {
         assert(m != NULL);
-
         seg_arr seg = malloc(sizeof(struct seg_arr));
         assert(seg != NULL);
         seg->segment = malloc(sizeof(uint32_t) * length);
@@ -175,7 +171,7 @@ uint32_t memory_map(Memory_T m, uint32_t length)
                 
                 if (m->total_segments >= m->seg_capacity) {
                         m->segments = realloc(m->segments, m->seg_capacity * 2 * sizeof(struct seg_arr) + sizeof(uint32_t));
-                        
+                        assert(m->segments != NULL);
                         uint32_t old_cap = m->seg_capacity;
                         m->seg_capacity = (m->seg_capacity * 2) + 1;
                         uint32_t new_cap = m->seg_capacity;
@@ -209,13 +205,14 @@ uint32_t memory_map(Memory_T m, uint32_t length)
 void memory_unmap(Memory_T m, uint32_t seg_num)
 {
         assert(m != NULL);
-        seg_arr unmap = m->segments[seg_num];
-        assert(unmap != NULL);
-        free(unmap->segment); 
-        free(unmap);
+        //seg_arr unmap = m->segments[seg_num];
+        // free(unmap->segment); 
+        free(m->segments[seg_num]->segment);
+        free(m->segments[seg_num]);
 
         if (m->unmapped_length == m->unampped_capacity) {
                 m->free = realloc(m->free, m->unampped_capacity * 2 * sizeof(uint32_t) + sizeof(uint32_t));
+                assert(m->free != NULL);
                 m->unampped_capacity = m->unampped_capacity * 2 + 1;
         }
 
@@ -229,15 +226,12 @@ void memory_unmap(Memory_T m, uint32_t seg_num)
 
 void load_program(Memory_T m, uint32_t seg_num)
 {
-        assert(m != NULL); 
-
+        assert(m != NULL);
         if (seg_num == 0) {
                 return; 
         }
 
         seg_arr to_copy = m->segments[seg_num];
-        assert(to_copy != NULL); 
-
         seg_arr copy = malloc(sizeof(*copy)); 
         assert(copy != NULL); 
         copy->segment = malloc(sizeof(uint32_t) * to_copy->length);
@@ -280,86 +274,23 @@ void load_program(Memory_T m, uint32_t seg_num)
 static uint32_t registers[NUM_REGISTERS];
 
 
-/* Name: input
- * Input:register c
- * Output: N/A
- * Does: takes in input from stdin and loads val into rc
- *       If end of input is signalled,
- *            rc gets 32-bit word in which every bit is 1 (~0)
- * Note: since we used fgetc, the inputted value can never be greater than 255
- */
-void input(uint32_t rc) 
-{
-    int input = fgetc(stdin);
-    if (input == EOF) { 
-            registers[rc] = ~0;
-    } else {
-            registers[rc] = input;       
-    }
-}
-
-/* Name: instruction_call
- * Input: UM_T struct of the um
- *        opcode of instruction to be executed
- *        unint32_t's representing registers A, B, C
- * Output: N/A
- * Does: Executes opcodes 0 to 11 (cmove to input)
- * Error: Asserts if opcode is invalid
- *        Asserts if any register number is valid
- *        Asserts if UM_T sruct is NULL
- * Notes: is called by um_execute
- */
-void instruction_call(Memory_T mem, Um_opcode op, uint32_t ra, 
-                      uint32_t rb, uint32_t rc)
-{
-    assert(op >= 0 && op < 14); //DO WE NEED IT
-    assert(mem != NULL);
-
-    switch (op) {
-        case CMOV: 
-                if (registers[rc] != 0) {
-                        registers[ra] = registers[rb];
-                }
-                break;
-        case SLOAD: 
-                // registers[ra] = memory_get(mem, registers[rb], registers[rc]);  
-                registers[ra]= mem->segments[registers[rb]]->segment[registers[rc]]; 
-                break;
-        case SSTORE: 
-                // memory_put(mem, registers[ra], registers[rb], registers[rc]);;  
-                mem->segments[registers[ra]]->segment[registers[rb]] = registers[rc];
-                break;
-        case ADD: 
-                registers[ra] = registers[rb] + registers[rc]; 
-                break;
-        case MUL: 
-                registers[ra] = registers[rb] * registers[rc];                 
-                break;
-        case DIV: 
-                registers[ra] = registers[rb] / registers[rc];                  
-                break;
-        case NAND: 
-                registers[ra] = ~(registers[rb] & registers[rc]);                   
-                break;
-        case HALT: 
-                memory_free(mem);
-                exit(EXIT_SUCCESS);
-                break;
-        case MAP: 
-                registers[rb] = memory_map(mem, registers[rc]); 
-                break;
-        case UNMAP: 
-                memory_unmap(mem, registers[rc]);
-                break;
-        case OUT: 
-                putchar(registers[rc]);
-                break;
-        case IN: 
-                input(rc);
-                break;
-        default: assert(true);
-    }
-}
+// /* Name: input
+//  * Input:register c
+//  * Output: N/A
+//  * Does: takes in input from stdin and loads val into rc
+//  *       If end of input is signalled,
+//  *            rc gets 32-bit word in which every bit is 1 (~0)
+//  * Note: since we used fgetc, the inputted value can never be greater than 255
+//  */
+// void input(uint32_t rc) 
+// {
+//     int input = fgetc(stdin);
+//     if (input == EOF) { 
+//             registers[rc] = ~0;
+//     } else {
+//             registers[rc] = input;       
+//     }
+// }
 
 
 /* Name: um_execute
@@ -375,44 +306,16 @@ void instruction_call(Memory_T mem, Um_opcode op, uint32_t ra,
 void um_execute(Memory_T mem)
 {
         assert(mem != NULL);
-
-        seg_arr seg_zero = mem->segments[0];
-        assert(seg_zero != NULL);
-
-        int seg_zero_len = seg_zero->length;
+        uint32_t *seg_zero = mem->segments[0]->segment;
+        int seg_zero_len = mem->segments[0]->length;
         int prog_counter = 0;
         uint32_t opcode, ra, rb, rc, word;
 
         /* Execute words in segment zero until there are none left */
         while (prog_counter < seg_zero_len) {
-                word = seg_zero->segment[prog_counter];
+                word = seg_zero[prog_counter];
                 opcode = word >> (WORD_SIZE - OP_WIDTH);
                 prog_counter++;
-
-                /* Load value */
-                // if (opcode == 13) {
-                //         ra = (word << (WORD_SIZE - (R_WIDTH + VALUE_SIZE))) >> (WORD_SIZE - R_WIDTH); 
-                //         registers[ra] = (word << (WORD_SIZE - VALUE_SIZE)) >> (WORD_SIZE - VALUE_SIZE); 
-                //         continue;
-                // } 
-
-                // ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
-                // rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
-                // rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
-
-                /* Load Program */
-                // if (opcode == 12) {
-                //         /* Updates programs counter*/
-                //         prog_counter = registers[rc];
-                //         load_program(mem, registers[rb]);
-                //         seg_zero = mem->segments[0];
-                //         assert(seg_zero != NULL);
-                //         seg_zero_len = seg_zero->length;
-                // } else {
-                //         instruction_call(mem, opcode, ra, rb, rc);
-                // }
-                
-              
                 
                 switch (opcode) {
                         case LV:
@@ -425,10 +328,25 @@ void um_execute(Memory_T mem)
                                 rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
                         
                                 prog_counter = registers[rc];
-                                load_program(mem, registers[rb]);
-                                seg_zero = mem->segments[0];
-                                assert(seg_zero != NULL);
-                                seg_zero_len = seg_zero->length;
+                                // load_program(mem, registers[rb]);
+                                if (registers[rb] != 0) {
+                                        seg_arr to_copy = mem->segments[registers[rb]];
+                                        seg_arr copy = malloc(sizeof(*copy)); 
+                                        assert(copy != NULL); 
+                                        copy->segment = malloc(sizeof(uint32_t) * to_copy->length);
+                                        assert(copy->segment != NULL);
+                                        copy->length = to_copy->length;
+                                        for (int i = 0; i < to_copy->length; i++) {
+                                                copy->segment[i] = to_copy->segment[i]; 
+                                        }
+                                        //seg_arr seg_0 = mem->segments[0]; 
+                                        free(mem->segments[0]->segment); 
+                                        free(mem->segments[0]);
+                                        mem->segments[0] = copy; 
+                                        
+                                        seg_zero = mem->segments[0]->segment;
+                                        seg_zero_len = mem->segments[0]->length; 
+                                }
                                 break;
                         case CMOV: 
                                 ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
@@ -481,11 +399,65 @@ void um_execute(Memory_T mem)
                         case MAP: 
                                 rb = (word << 26) >> (WORD_SIZE - R_WIDTH); 
                                 rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
-                                registers[rb] = memory_map(mem, registers[rc]); 
+                                // registers[rb] = memory_map(mem, registers[rc]); 
+
+                                seg_arr seg = malloc(sizeof(struct seg_arr));
+                                assert(seg != NULL);
+                                seg->segment = malloc(sizeof(uint32_t) * registers[rc]);
+                                assert(seg->segment != NULL);
+                                seg->length = registers[rc];
+
+                                /* Setting values in new segment to 0 */
+                                for (uint32_t arr_index = 0; arr_index < registers[rc]; ++arr_index) {
+                                        seg->segment[arr_index] = 0;
+                                }
+
+                                if (mem->unmapped_length == 0) {
+                                        mem->total_segments++;
+                                        
+                                        if (mem->total_segments >= mem->seg_capacity) {
+                                                mem->segments = realloc(mem->segments, mem->seg_capacity * 2 * sizeof(struct seg_arr) + sizeof(uint32_t));
+                                                assert(mem->segments != NULL);
+                                                uint32_t old_cap = mem->seg_capacity;
+                                                mem->seg_capacity = (mem->seg_capacity * 2) + 1;
+                                                uint32_t new_cap = mem->seg_capacity;
+
+                                                for (uint32_t i = old_cap; i < new_cap; ++i) {
+                                                        mem->segments[i] = 0;
+                                                }
+                                        }
+                                        mem->segments[mem->total_segments - 1] = seg;
+                                        mem->mem_length++; 
+
+                                        registers[rb] = mem->total_segments - 1;  
+                                } else {
+                                        mem->unmapped_length--;
+                                        mem->segments[mem->free[mem->unmapped_length]] = seg;
+                                        registers[rb] = mem->free[mem->unmapped_length]; 
+                                }
+
+
+
+
                                 break;
                         case UNMAP: 
                                 rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
-                                memory_unmap(mem, registers[rc]);
+                                // memory_unmap(mem, registers[rc]);
+
+                                free(mem->segments[registers[rc]]->segment);
+                                free(mem->segments[registers[rc]]);
+
+                                if (mem->unmapped_length == mem->unampped_capacity) {
+                                        mem->free = realloc(mem->free, mem->unampped_capacity * 2 * sizeof(uint32_t) + sizeof(uint32_t));
+                                        assert(mem->free != NULL);
+                                        mem->unampped_capacity = mem->unampped_capacity * 2 + 1;
+                                }
+
+                                mem->free[mem->unmapped_length] = registers[rc]; 
+                                mem->unmapped_length++; 
+
+                                mem->segments[registers[rc]] = NULL; 
+                                mem->mem_length--;
                                 break;
                         case OUT: 
                                 rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
@@ -493,98 +465,18 @@ void um_execute(Memory_T mem)
                                 break;
                         case IN: 
                                 rc = (word << 29) >> (WORD_SIZE - R_WIDTH); 
-                                input(rc);
+                                // input(rc);
+                                int input = fgetc(stdin);
+                                if (input == EOF) { 
+                                        registers[rc] = ~0;
+                                } else {
+                                        registers[rc] = input;       
+                                }
                                 break;
-                        default: assert(true);
+                        // default: assert(true);
                 }
 
 
                 
         }
 }
-
-/*
-  switch (opcode) {
-                        case LV:
-                                ra = (word << 4) >> (29); 
-                                registers[ra] = (word << 7) >> 7; 
-                                break;
-                        case LOADP: 
-                               // ra = (word << (WORD_SIZE - (R_WIDTH + RA_LSB))) >> (WORD_SIZE - R_WIDTH); 
-                                rb = (word << 26) >> (29); 
-                                rc = (word << 29) >> 29; 
-                        
-                                prog_counter = registers[rc];
-                                load_program(mem, registers[rb]);
-                                seg_zero = mem->segments[0];
-                                assert(seg_zero != NULL);
-                                seg_zero_len = seg_zero->length;
-                                break;
-                        case CMOV: 
-                                ra = (word << (23)) >> (29); 
-                                rb = (word << 26) >> (29); 
-                                rc = (word << 29) >> (29); 
-                                if (registers[rc] != 0) {
-                                        registers[ra] = registers[rb];
-                                }
-                                break;
-                        case SLOAD: 
-                                ra = (word << (23)) >> (29); 
-                                rb = (word << 26) >> (29); 
-                                rc = (word << 29) >> (29); 
-                                registers[ra]= mem->segments[registers[rb]]->segment[registers[rc]]; 
-                                break;
-                        case SSTORE: 
-                                ra = (word << (23)) >> (29); 
-                                rb = (word << 26) >> (29); 
-                                rc = (word << 29) >> (29); 
-                                mem->segments[registers[ra]]->segment[registers[rb]] = registers[rc];
-                                break;
-                        case ADD: 
-                                ra = (word << (23)) >> (29); 
-                                rb = (word << 26) >> (29); 
-                                rc = (word << 29) >> (29); 
-                                registers[ra] = registers[rb] + registers[rc]; 
-                                break;
-                        case MUL: 
-                                ra = (word << (23)) >> (29); 
-                                rb = (word << 26) >> (29); 
-                                rc = (word << 29) >> (29); 
-                                registers[ra] = registers[rb] * registers[rc];                 
-                                break;
-                        case DIV: 
-                                ra = (word << (23)) >> (29); 
-                                rb = (word << 26) >> (29); 
-                                rc = (word << 29) >> (29); 
-                                registers[ra] = registers[rb] / registers[rc];                  
-                                break;
-                        case NAND: 
-                                ra = (word << (23)) >> (29); 
-                                rb = (word << 26) >> (29); 
-                                rc = (word << 29) >> (29); 
-                                registers[ra] = ~(registers[rb] & registers[rc]);                   
-                                break;
-                        case HALT: 
-                                memory_free(mem);
-                                exit(EXIT_SUCCESS);
-                                break;
-                        case MAP: 
-                                rb = (word << 26) >> (29); 
-                                rc = (word << 29) >> (29); 
-                                registers[rb] = memory_map(mem, registers[rc]); 
-                                break;
-                        case UNMAP: 
-                                rc = (word << 29) >> (29); 
-                                memory_unmap(mem, registers[rc]);
-                                break;
-                        case OUT: 
-                                rc = (word << 29) >> (29); 
-                                putchar(registers[rc]);
-                                break;
-                        case IN: 
-                                rc = (word << 29) >> (29); 
-                                input(rc);
-                                break;
-                        default: assert(true);
-                }*/
-
