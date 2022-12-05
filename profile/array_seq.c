@@ -12,14 +12,11 @@ struct seg_arr {
 /* uarray new */
 
 seg_arr seg_arr_new(int length) {
-
         /* Mallocs a uarray */
-        seg_arr seg = malloc(sizeof(struct seg_arr));
-
+        seg_arr seg = malloc(sizeof(*seg));
         /* */
-        seg->segment = malloc(sizeof(struct segment) * length);
+        seg->segment = malloc(sizeof(uint32_t) * length);
         seg->length = length;
-
         return seg;
 }
 

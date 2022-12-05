@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "um.h"
+// #include "um.h"
 #include "uarray.h" 
 #include "seq.h"
 #include "bitpack.h"
@@ -57,44 +57,44 @@ void input(uint32_t rc)
     }
 }
 
-/* Name: load_program
- * Input: UM_T struct; uint32_t's reprsenting registers A, B, C
- * Output: a uint32_t representing the index that program should start at
- * Does: copies segment[rb value] into segment zero and returns rc value
- * Error: Asserts UM_T struct is NULL
- *        Asserts if any register number is valid
- */
-uint32_t load_program(Memory_T mem, uint32_t rb, uint32_t rc)
-{
-    assert(mem != NULL);
+// /* Name: load_program
+//  * Input: UM_T struct; uint32_t's reprsenting registers A, B, C
+//  * Output: a uint32_t representing the index that program should start at
+//  * Does: copies segment[rb value] into segment zero and returns rc value
+//  * Error: Asserts UM_T struct is NULL
+//  *        Asserts if any register number is valid
+//  */
+// uint32_t load_program(Memory_T mem, uint32_t rb, uint32_t rc)
+// {
+//     assert(mem != NULL);
 
-    /* If rb value is 0, 0 is already loaded into segment 0 */
-    if (registers[rb] == 0) {
-        return registers[rc];
-    }
+//     /* If rb value is 0, 0 is already loaded into segment 0 */
+//     if (registers[rb] == 0) {
+//         return registers[rc];
+//     }
     
-    /* Get the segment to copy */
-    UArray_T to_copy = (UArray_T)Seq_get(mem->segments, registers[rb]);
-    assert(to_copy != NULL);
+//     /* Get the segment to copy */
+//     UArray_T to_copy = (UArray_T)Seq_get(mem->segments, registers[rb]);
+//     assert(to_copy != NULL);
 
-    /* Creating a copy with the same specifications */
-    int seg_len = UArray_length(to_copy);
-    UArray_T copy = UArray_new(seg_len, UArray_size(to_copy));
-    assert(copy != NULL);
+//     /* Creating a copy with the same specifications */
+//     int seg_len = UArray_length(to_copy);
+//     UArray_T copy = UArray_new(seg_len, UArray_size(to_copy));
+//     assert(copy != NULL);
 
-    /* Deep copying */
-    for (int i = 0; i < seg_len; i++){
-        *(uint32_t *)UArray_at(copy, i) = 
-        *(uint32_t *)UArray_at(to_copy, i);
-    }
+//     /* Deep copying */
+//     for (int i = 0; i < seg_len; i++){
+//         *(uint32_t *)UArray_at(copy, i) = 
+//         *(uint32_t *)UArray_at(to_copy, i);
+//     }
 
-    /* Freeing segment 0 and inserting the copy */
-    UArray_T seg_zero = (UArray_T)Seq_get(mem->segments, 0);
-    UArray_free(&seg_zero);
-    Seq_put(mem->segments, 0, copy);
+//     /* Freeing segment 0 and inserting the copy */
+//     UArray_T seg_zero = (UArray_T)Seq_get(mem->segments, 0);
+//     UArray_free(&seg_zero);
+//     Seq_put(mem->segments, 0, copy);
 
-    return registers[rc];
-}
+//     return registers[rc];
+// }
 
 /* Name: instruction_call
  * Input: UM_T struct of the um
@@ -173,17 +173,22 @@ void um_execute(Memory_T mem)
 {
         assert(mem != NULL);
 
-        UArray_T seg_zero = (UArray_T)Seq_get(mem->segments, 0);
+        // UArray_T seg_zero = (UArray_T)Seq_get(mem->segments, 0);
+        seg_arr seg_zero = (seg_arr)Seq_get(mem->segments, 0);;
+
         assert(seg_zero != NULL);
 
-        int seg_zero_len = UArray_length(seg_zero);
+        // int seg_zero_len = UArray_length(seg_zero);
+        int seg_zero_len = seg_arr_length(seg_zero);
+
         int prog_counter = 0;
         uint32_t opcode, ra, rb, rc, word;
 
         /* Execute words in segment zero until there are none left */
         while (prog_counter < seg_zero_len) {
-                word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
-                
+                // word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
+                word = seg_zero[prog_counter];
+
                 //opcode = Bitpack_getu(word, OP_WIDTH, WORD_SIZE - OP_WIDTH);
                 opcode = word >> (WORD_SIZE - OP_WIDTH);
 
@@ -214,10 +219,12 @@ void um_execute(Memory_T mem)
                         /* Updates programs counter*/
                         prog_counter = load_program(mem, rb, rc);
 
-                        seg_zero = (UArray_T)Seq_get(mem->segments, 0);
+                        // seg_zero = (UArray_T)Seq_get(mem->segments, 0);
+                        seg_zero = (seg_arr)Seq_get(mem->segments, 0);
                         assert(seg_zero != NULL);
 
-                        seg_zero_len = UArray_length(seg_zero);
+                        // seg_zero_len = UArray_length(seg_zero);
+                        seg_zero_len = seg_arr_length(seg_zero);
                         } else {
                         instruction_call(mem, opcode, ra, rb, rc);
                 }
