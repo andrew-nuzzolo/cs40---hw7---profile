@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     fclose(fp);
     um_execute(mem);
 
-    memory_free(&mem);
+    memory_free(mem);
 
     return EXIT_SUCCESS;
 }
@@ -74,38 +74,6 @@ void populate_seg_zero(Memory_T mem, FILE *fp, uint32_t size)
         c = getc(fp); 
         d = getc(fp); 
         word = (a << 24) | (b << 16) | (c << 8) | d;
-        //uint32_t word = construct_word(fp);
         memory_put(mem, 0, index, word);
     }
 }
-
-/* Name: construct_word
- * Input: a file pointer
- * Output: a uint32_t representing a word
- * Does: grabs 8 bits in big endian order and 
- *       creates a 32 bit word which is returned
- * Error: Asserts if file pointer is NULL
- */
-// uint32_t construct_word(FILE *fp)
-// {
-//     assert(fp != NULL);
-
-//     // uint32_t c = 0, word = 0;
-//     // int bytes = W_SIZE / CHAR_SIZE;
-
-//     // /* Reads in a char and creates word in big endian order */
-//     // for (int c_loop = 0; c_loop < bytes; c_loop++) {
-//     //     c = getc(fp);
-//     //     assert(!feof(fp));
-
-//     //     unsigned lsb = W_SIZE - (CHAR_SIZE * c_loop) - CHAR_SIZE;
-//     //     word = Bitpack_newu(word, CHAR_SIZE, lsb, c);
-//     // }
-//     uint32_t a = 0, b = 0, c = 0, d = 0; 
-//         a = getc(fp); 
-//         b = getc(fp); 
-//         c = getc(fp); 
-//         d = getc(fp); 
-    
-//     return (a << 24) | (b << 16) | (c << 8) | d;
-// }
