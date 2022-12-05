@@ -27,9 +27,6 @@ struct seg_arr {
    - one holding pointers to UArray_T's representing segments
    - one holding pointers to uint32_t's representing free segments */
 struct Memory_T {
-        //Seq_T segments;
-      // uint32_t *segments;
-       //Seq_T free;
         seg_arr *segments; 
         uint32_t mem_length;
         uint32_t seg_capacity; 
@@ -38,16 +35,6 @@ struct Memory_T {
         uint32_t unampped_capacity; 
         uint32_t total_segments; 
 };
-
-
-
-/* new */
-// seg_arr *mem_arr_new(int length) {
-//         // fprintf(stderr, "making new segment\n");
-//     seg_arr *segments = malloc(length * sizeof(struct seg_arr)); 
-//     assert (segments != NULL);
-//     return segments;
-// }
 
 
 
@@ -63,11 +50,6 @@ seg_arr mem_arr_get(Memory_T m, uint32_t index) {
 /* seq put */
 void mem_arr_put(Memory_T m, seg_arr seg, int index) 
 {
-        // if (index >= m->seg_capacity) {
-        //         m->segments = realloc(m->segments, m->seg_capacity * 2 * sizeof(uint32_t) + sizeof(uint32_t));
-
-        // }
-        // fprintf(stderr, "put\n");
         m->segments[index] = seg;
 }
 
@@ -79,7 +61,14 @@ void mem_arr_addhi(Memory_T m, seg_arr seg)
         assert(seg != NULL); 
         if (m->total_segments >= m->seg_capacity) {
                 m->segments = realloc(m->segments, m->seg_capacity * 2 * sizeof(struct seg_arr) + sizeof(uint32_t));
-                m->seg_capacity = (m->seg_capacity * 2) + 1; 
+                
+                uint32_t old_cap = m->seg_capacity;
+                m->seg_capacity = (m->seg_capacity * 2) + 1;
+                uint32_t new_cap = m->seg_capacity;
+
+                for (uint32_t i = old_cap; i < new_cap; ++i) {
+                        m->segments[i] = 0;
+                }
         }
         m->segments[m->total_segments - 1] = seg;
         m->mem_length++; 
@@ -144,7 +133,7 @@ Memory_T memory_new(uint32_t length)
 
         m_new->free = malloc(sizeof(uint32_t) * BIG_HINT); 
         assert(m_new->free != NULL); 
-
+        m_new->mem_length = 0; 
         m_new->unmapped_length = 0; 
         m_new->unampped_capacity = BIG_HINT; 
         m_new->total_segments = 0; 
